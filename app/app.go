@@ -104,6 +104,7 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmclient "github.com/CosmWasm/wasmd/x/wasm/client"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 
 	ica "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts"
 	icahost "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host"
@@ -728,6 +729,15 @@ func NewKitoolsApp(
 
 		// configure store loader that checks if version == upgradeHeight and applies store upgrades
 		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
+	}
+
+	if manager := app.SnapshotManager(); manager != nil {
+		err = manager.RegisterExtensions(
+			wasmkeeper.NewWasmSnapshotter(app.CommitMultiStore(), &app.WasmKeeper),
+		)
+		if err != nil {
+			panic("failed to register snapshot extension: " + err.Error())
+		}
 	}
 
 	if loadLatest {
